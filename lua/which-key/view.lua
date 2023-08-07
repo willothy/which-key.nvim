@@ -17,6 +17,9 @@ M.buf = nil
 M.win = nil
 
 function M.is_valid()
+  if config.options.custom_view then
+    return config.options.custom_view.is_valid()
+  end
   return M.buf
     and M.win
     and vim.api.nvim_buf_is_valid(M.buf)
@@ -27,6 +30,10 @@ end
 function M.show()
   if vim.b.visual_multi then
     vim.b.VM_skip_reset_once_on_bufleave = true
+  end
+  if config.options.custom_view then
+    config.options.custom_view.show()
+    return
   end
   if M.is_valid() then
     return
@@ -134,6 +141,10 @@ function M.getchar()
 end
 
 function M.scroll(up)
+  if config.options.custom_view then
+    config.options.custom_view.scroll(up)
+    return
+  end
   local height = vim.api.nvim_win_get_height(M.win)
   local cursor = vim.api.nvim_win_get_cursor(M.win)
   if up then
@@ -145,10 +156,17 @@ function M.scroll(up)
 end
 
 function M.on_close()
+  if config.options.custom_view then
+    config.options.custom_view.on_close()
+  end
   M.hide()
 end
 
 function M.hide()
+  if config.options.custom_view then
+    config.options.custom_view.hide()
+    return
+  end
   vim.api.nvim_echo({ { "" } }, false, {})
   M.hide_cursor()
   if M.buf and vim.api.nvim_buf_is_valid(M.buf) then
@@ -163,12 +181,20 @@ function M.hide()
 end
 
 function M.show_cursor()
+  if config.options.custom_view and config.options.custom_view.show_cursor then
+    config.options.custom_view.show_cursor()
+    return
+  end
   local buf = vim.api.nvim_get_current_buf()
   local cursor = vim.api.nvim_win_get_cursor(0)
   vim.api.nvim_buf_add_highlight(buf, config.namespace, "Cursor", cursor[1] - 1, cursor[2], cursor[2] + 1)
 end
 
 function M.hide_cursor()
+  if config.options.custom_view and config.options.custom_view.hide_cursor then
+    config.options.custom_view.hide_cursor()
+    return
+  end
   local buf = vim.api.nvim_get_current_buf()
   vim.api.nvim_buf_clear_namespace(buf, config.namespace, 0, -1)
 end
@@ -309,7 +335,11 @@ function M.on_keys(opts)
         M.show()
       end
 
-      M.render(layout:layout(M.win))
+      if config.options.custom_view then
+        config.options.custom_view.render(layout.items, layout:trail(true))
+      else
+        M.render(layout:layout(M.win))
+      end
     end
     vim.cmd([[redraw]])
 

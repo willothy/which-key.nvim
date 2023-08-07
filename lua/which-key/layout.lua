@@ -37,7 +37,7 @@ function Layout:max_width(key)
   return max
 end
 
-function Layout:trail()
+function Layout:trail(get_val)
   local prefix_i = self.results.prefix_i
   local buf_path = Keys.get_tree(self.results.mode, self.results.buf).tree:path(prefix_i)
   local path = Keys.get_tree(self.results.mode).tree:path(prefix_i)
@@ -84,24 +84,32 @@ function Layout:trail()
     table.insert(help_line, { label .. " ", "WhichKeySeparator" })
   end
   if Config.options.show_keys then
-    table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
+    if self.options.custom_view == nil or self.options.custom_view.show_keys then
+      table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
+    end
   end
 
   if self.options.show_help then
-    for _, l in pairs(help_line) do
-      table.insert(cmd_line, l)
+    if self.options.custom_view == nil or self.options.custom_view.show_help then
+      for _, l in pairs(help_line) do
+        table.insert(cmd_line, l)
+      end
     end
   end
-  if vim.o.cmdheight > 0 then
-    vim.api.nvim_echo(cmd_line, false, {})
-    vim.cmd([[redraw]])
+  if get_val then
+    return cmd_line
   else
-    local col = 1
-    self.text:nl()
-    local row = #self.text.lines
-    for _, text in ipairs(cmd_line) do
-      self.text:set(row, col, text[1], text[2] and text[2]:gsub("WhichKey", "") or nil)
-      col = col + vim.fn.strwidth(text[1])
+    if vim.o.cmdheight > 0 then
+      vim.api.nvim_echo(cmd_line, false, {})
+      vim.cmd([[redraw]])
+    else
+      local col = 1
+      self.text:nl()
+      local row = #self.text.lines
+      for _, text in ipairs(cmd_line) do
+        self.text:set(row, col, text[1], text[2] and text[2]:gsub("WhichKey", "") or nil)
+        col = col + vim.fn.strwidth(text[1])
+      end
     end
   end
 end
