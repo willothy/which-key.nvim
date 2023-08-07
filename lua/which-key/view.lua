@@ -52,24 +52,33 @@ function M.show()
 
   local opts = {
     relative = "editor",
-    width = vim.o.columns
-      - margins[2]
-      - margins[4]
-      - (vim.fn.has("nvim-0.6") == 0 and config.options.window.border ~= "none" and 2 or 0),
     height = config.options.layout.height.min,
     focusable = false,
-    anchor = "SW",
+    anchor = "NW",
     border = config.options.window.border,
     row = vim.o.lines
       - margins[3]
       - (vim.fn.has("nvim-0.6") == 0 and config.options.window.border ~= "none" and 2 or 0)
       + ((vim.o.laststatus == 0 or vim.o.laststatus == 1 and #wins == 1) and 1 or 0)
       - vim.o.cmdheight,
-    col = margins[4],
     style = "minimal",
     noautocmd = true,
     zindex = config.options.window.zindex,
   }
+  if config.options.window.position == "botright" then
+    opts.col = vim.o.columns
+    opts.width = 40
+  elseif config.options.window.position == "botleft" then
+    opts.col = 0
+    opts.width = 40
+  else
+    opts.col = margins[4]
+    opts.anchor = "SW"
+    opts.width = vim.o.columns
+      - margins[2]
+      - margins[4]
+      - (vim.fn.has("nvim-0.6") == 0 and config.options.window.border ~= "none" and 2 or 0)
+  end
   if config.options.window.position == "top" then
     opts.anchor = "NW"
     opts.row = margins[1]
@@ -309,6 +318,11 @@ function M.on_keys(opts)
         M.show()
       end
 
+      local win_config = vim.api.nvim_win_get_config(M.win)
+      win_config.width = 45
+      win_config.title = layout:trail(true)
+      vim.api.nvim_win_set_config(M.win, win_config)
+
       M.render(layout:layout(M.win))
     end
     vim.cmd([[redraw]])
@@ -331,13 +345,43 @@ function M.on_keys(opts)
 end
 
 ---@param text Text
-function M.render(text)
+function M.render(text, layout)
   vim.api.nvim_buf_set_lines(M.buf, 0, -1, false, text.lines)
   local height = #text.lines
   if height > config.options.layout.height.max then
     height = config.options.layout.height.max
   end
+
+  if config.options.window.position == "botright" or config.options.window.position == "botleft" then
+    local win_config = vim.api.nvim_win_get_config(M.win)
+    win_config.row = vim.o.lines
+      - height
+      - 1
+      - config.options.window.padding[3]
+      - config.options.window.padding[1]
+      - math.max(0, config.options.layout.height.min - #text.lines + 2)
+    local max_len = 0
+    for _, line in ipairs(text.lines) do
+      local len = vim.fn.strdisplaywidth(line:gsub("%s+$", ""))
+      if len > max_len then
+        max_len = len
+      end
+    end
+    local title_len = config.options.window.padding[2]
+    for _, line in ipairs(win_config.title) do
+      if type(line) == "string" then
+        title_len = title_len + vim.fn.strdisplaywidth(line)
+      else
+        local txt = line[1]
+        title_len = title_len + vim.fn.strdisplaywidth(txt)
+      end
+    end
+    win_config.width = math.max(title_len, max_len + config.options.window.padding[2])
+    vim.api.nvim_win_set_config(M.win, win_config)
+  end
+
   vim.api.nvim_win_set_height(M.win, height)
+
   if vim.api.nvim_buf_is_valid(M.buf) then
     vim.api.nvim_buf_clear_namespace(M.buf, config.namespace, 0, -1)
   end

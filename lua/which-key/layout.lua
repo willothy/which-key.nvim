@@ -37,12 +37,14 @@ function Layout:max_width(key)
   return max
 end
 
-function Layout:trail()
+function Layout:trail(no_output)
   local prefix_i = self.results.prefix_i
   local buf_path = Keys.get_tree(self.results.mode, self.results.buf).tree:path(prefix_i)
   local path = Keys.get_tree(self.results.mode).tree:path(prefix_i)
   local len = #self.results.mapping.keys.notation
-  local cmd_line = { { " " } }
+  local small_view = self.options.window.position == "botright" or self.options.window.position == "botleft"
+  local space = small_view and "─" or " "
+  local cmd_line = { { space, "WhichKeySeparator" } }
   for i = 1, len, 1 do
     local node = buf_path[i]
     if not (node and node.mapping and node.mapping.label) then
@@ -58,7 +60,11 @@ function Layout:trail()
     if Config.options.show_keys then
       table.insert(cmd_line, { step, "WhichKeyGroup" })
       if i ~= #self.mapping.keys.notation then
-        table.insert(cmd_line, { " " .. self.options.icons.breadcrumb .. " ", "WhichKeySeparator" })
+        if small_view then
+          table.insert(cmd_line, { space, "WhichKeySeparator" })
+        else
+          table.insert(cmd_line, { space .. self.options.icons.breadcrumb .. space, "WhichKeySeparator" })
+        end
       end
     end
   end
@@ -80,17 +86,20 @@ function Layout:trail()
   local help_width = 0
   for key, label in pairs(help) do
     help_width = help_width + Text.len(key) + Text.len(label) + 2
-    table.insert(help_line, { key .. " ", "WhichKey" })
-    table.insert(help_line, { label .. " ", "WhichKeySeparator" })
+    table.insert(help_line, { key .. space, "WhichKey" })
+    table.insert(help_line, { label .. space, "WhichKeySeparator" })
   end
-  if Config.options.show_keys then
+  if Config.options.show_keys and not small_view then
     table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
   end
 
-  if self.options.show_help then
+  if self.options.show_help and not small_view then
     for _, l in pairs(help_line) do
       table.insert(cmd_line, l)
     end
+  end
+  if no_output then
+    return cmd_line
   end
   if vim.o.cmdheight > 0 then
     vim.api.nvim_echo(cmd_line, false, {})
@@ -209,7 +218,9 @@ function Layout:layout(win)
   for _ = 1, pad_bot, 1 do
     self.text:nl()
   end
-  self:trail()
+  if Config.options.window.position ~= "botright" and Config.options.window.position ~= "botleft" then
+    self:trail()
+  end
   return self.text
 end
 
