@@ -37,12 +37,12 @@ function Layout:max_width(key)
   return max
 end
 
-function Layout:trail()
+function Layout:trail(get)
   local prefix_i = self.results.prefix_i
   local buf_path = Keys.get_tree(self.results.mode, self.results.buf).tree:path(prefix_i)
   local path = Keys.get_tree(self.results.mode).tree:path(prefix_i)
   local len = #self.results.mapping.keys.notation
-  local cmd_line = { { " " } }
+  local cmd_line = { { " ", "WhichKey" } }
   for i = 1, len, 1 do
     local node = buf_path[i]
     if not (node and node.mapping and node.mapping.label) then
@@ -84,13 +84,16 @@ function Layout:trail()
     table.insert(help_line, { label .. " ", "WhichKeySeparator" })
   end
   if Config.options.show_keys then
-    table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
+    table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width), "WhichKey" })
   end
 
   if self.options.show_help then
     for _, l in pairs(help_line) do
       table.insert(cmd_line, l)
     end
+  end
+  if get then
+    return cmd_line
   end
   if vim.o.cmdheight > 0 then
     vim.api.nvim_echo(cmd_line, false, {})
@@ -209,8 +212,10 @@ function Layout:layout(win)
   for _ = 1, pad_bot, 1 do
     self.text:nl()
   end
-  self:trail()
-  return self.text
+  if false then
+    self:trail()
+  end
+  return self.text, self
 end
 
 return Layout
