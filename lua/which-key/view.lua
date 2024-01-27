@@ -40,6 +40,9 @@ function M.show()
   ---@type number[]
   local margins = {}
   for i, m in ipairs(config.options.window.margin) do
+    if type(m) == "function" then
+      m = m()
+    end
     if m > 0 and m < 1 then
       if i % 2 == 0 then
         m = math.floor(vim.o.columns * m)
