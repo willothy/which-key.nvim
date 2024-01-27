@@ -352,9 +352,22 @@ function M.render(text, layout)
   end)
   local trail = layout:trail(true)
   local conf = vim.api.nvim_win_get_config(M.win)
-  conf.footer = trail
-  conf.border = "solid"
-  vim.wo[M.win].winhl = "FloatBorder:NormalFloat,FloatFooter:NormalFloat"
+  for i = #trail, 1, -1 do
+    if vim.trim(trail[i][1]) == "" then
+      table.remove(trail, i)
+    else
+      break
+    end
+  end
+  if #trail > 0 then
+    table.insert(trail, { " ", "FloatBorder" })
+    if config.options.window.trail == "footer" then
+      conf.footer = trail
+    else
+      conf.title = trail
+    end
+  end
+  vim.wo[M.win].winhl = "FloatFooter:NormalFloat"
   vim.api.nvim_win_set_config(M.win, conf)
 end
 
